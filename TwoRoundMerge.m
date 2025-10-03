@@ -41,30 +41,109 @@ end
 %%
 disp("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%STEP2%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 num_C=numel(clusters);
-while(num_C>K)
-    InterConnetionRatio=zeros(num_C);
-    for i=1:num_C
-        for j=(i+1):num_C
-            EdgeC1C2=MST_3(clusters{i,1},clusters{j,1});
-            [row,~]=find(EdgeC1C2>0);
-            if isempty(row)
-                continue;
-            else
-                [VertRatio,d]=computeVertRatio(clusters{i,1},clusters{j,1},MST_3);%计算IC值
+IDX = zeros(N,1);
+if num_C>K
+    [neighbors, icValues, heapValues, heapPairs] = initializePriorityStructures(clusters,MST_3);
+    active = true(num_C,1);
+    activeCount = sum(active);
+    while activeCount>K
+        selectedFromHeap=true;
+        if isempty(heapValues)
+            activeIdx=find(active);
+            if numel(activeIdx)<2
+                break;
             end
-            InterConnetionRatio(i,j)=VertRatio*d;
+            pair=sort(activeIdx(1:2));
+            candidateIC=icValues(pair(1),pair(2));
+            selectedFromHeap=false;
+        else
+            [heapValues, heapPairs, candidateIC, pair] = heapPop(heapValues, heapPairs);
+        end
+        i = pair(1);
+        j = pair(2);
+        if i>num_C || j>num_C || ~active(i) || ~active(j)
+            continue;
+        end
+        if selectedFromHeap
+            if isempty(neighbors{i}) || ~any(neighbors{i}==j)
+                continue;
+            end
+        else
+            neighbors{i}(end+1)=j;
+            neighbors{j}(end+1)=i;
+            neighbors{i}=unique(neighbors{i});
+            neighbors{i}=neighbors{i}(:)';
+            neighbors{j}=unique(neighbors{j});
+            neighbors{j}=neighbors{j}(:)';
+        end
+        currentIC = icValues(i,j);
+        if ~isfinite(currentIC)
+            continue;
+        end
+        if selectedFromHeap
+            tolerance = max(1, abs(currentIC)) * eps(1);
+            if abs(currentIC - candidateIC) > tolerance
+                continue;
+            end
+        end
+        clusters{i,1}=[clusters{i,1};clusters{j,1}];
+        clusters{j,1}=[];
+        active(j)=false;
+        activeCount=activeCount-1;
+        icValues(j,:)=0;
+        icValues(:,j)=0;
+        candidateNeighbors = unique([neighbors{i}, neighbors{j}]);
+        candidateNeighbors(candidateNeighbors==i)=[];
+        candidateNeighbors(candidateNeighbors==j)=[];
+        neighbors{j}=[];
+        neighbors{i}=[];
+        for idxNeighbor=1:numel(candidateNeighbors)
+            k = candidateNeighbors(idxNeighbor);
+            if k>num_C
+                continue;
+            end
+            if ~isempty(neighbors{k})
+                neighbors{k}(neighbors{k}==j)=[];
+            end
+            if ~active(k)
+                continue;
+            end
+            EdgeC1C2=MST_3(clusters{i,1},clusters{k,1});
+            if any(EdgeC1C2(:)>0)
+                [VertRatio,d]=computeVertRatio(clusters{i,1},clusters{k,1},MST_3);
+                newIC=VertRatio*d;
+                if ~isfinite(newIC)
+                    newIC=0;
+                end
+                neighbors{i}(end+1)=k;
+                if isempty(neighbors{k})
+                    neighbors{k}=i;
+                else
+                    neighbors{k}(end+1)=i;
+                end
+                neighbors{k}=unique(neighbors{k});
+                neighbors{k}=neighbors{k}(:)';
+                icValues(i,k)=newIC;
+                icValues(k,i)=newIC;
+                heapPair=sort([i,k]);
+                heapPair=heapPair(:)';
+                [heapValues,heapPairs]=heapPush(heapValues,heapPairs,newIC,heapPair);
+            else
+                icValues(i,k)=0;
+                icValues(k,i)=0;
+                if ~isempty(neighbors{k})
+                    neighbors{k}(neighbors{k}==i)=[];
+                end
+            end
+        end
+        if ~isempty(neighbors{i})
+            neighbors{i}=unique(neighbors{i});
+            neighbors{i}=neighbors{i}(:)';
         end
     end
-    %寻找最大IC合并,删去空白簇
-    maxIC=max(max(InterConnetionRatio));
-    [rowIndex,colIndex]=find(InterConnetionRatio==maxIC);
-    rowIndex=rowIndex(1);
-    colIndex=colIndex(1);
-    clusters{rowIndex,1}=[clusters{rowIndex,1};clusters{colIndex,1}];
-    clusters{colIndex,1}=[];
-    clusters(cellfun(@isempty,clusters))=[];
-    num_C=numel(clusters);
+    clusters=clusters(active);
 end
+num_C=numel(clusters);
 for i=1:K
     IDX(clusters{i,1})=i;
 end
@@ -107,6 +186,91 @@ else
     d2=AvgConnC2/AvgEdge;
 end
 d=min(d1,d2);%第二部分
+end
+
+function [neighbors, icValues, heapValues, heapPairs] = initializePriorityStructures(clusters,MST_3)
+num_C=numel(clusters);
+neighbors=cell(num_C,1);
+icValues=zeros(num_C);
+heapValues=zeros(0,1);
+heapPairs=zeros(0,2);
+for i=1:num_C-1
+    for j=i+1:num_C
+        EdgeC1C2=MST_3(clusters{i,1},clusters{j,1});
+        if any(EdgeC1C2(:)>0)
+            [VertRatio,d]=computeVertRatio(clusters{i,1},clusters{j,1},MST_3);
+            value=VertRatio*d;
+            if ~isfinite(value)
+                value=0;
+            end
+            neighbors{i,1}(end+1)=j;
+            neighbors{j,1}(end+1)=i;
+            icValues(i,j)=value;
+            icValues(j,i)=value;
+            pair=[i,j];
+            [heapValues,heapPairs]=heapPush(heapValues,heapPairs,value,pair);
+        end
+    end
+    if ~isempty(neighbors{i,1})
+        neighbors{i,1}=unique(neighbors{i,1});
+        neighbors{i,1}=neighbors{i,1}(:)';
+    end
+end
+if ~isempty(neighbors{num_C,1})
+    neighbors{num_C,1}=unique(neighbors{num_C,1});
+    neighbors{num_C,1}=neighbors{num_C,1}(:)';
+end
+end
+
+function [heapValues,heapPairs]=heapPush(heapValues,heapPairs,value,pair)
+pair=sort(pair);
+pair=pair(:)';
+heapValues(end+1,1)=value;
+heapPairs(end+1,1:2)=pair;
+idx=numel(heapValues);
+while idx>1
+    parent=floor(idx/2);
+    if heapValues(parent)>=heapValues(idx)
+        break;
+    end
+    [heapValues(parent),heapValues(idx)]=deal(heapValues(idx),heapValues(parent));
+    [heapPairs(parent,1:2),heapPairs(idx,1:2)]=deal(heapPairs(idx,1:2),heapPairs(parent,1:2));
+    idx=parent;
+end
+end
+
+function [heapValues,heapPairs,value,pair]=heapPop(heapValues,heapPairs)
+pair=heapPairs(1,1:2);
+value=heapValues(1);
+lastIdx=numel(heapValues);
+if lastIdx==1
+    heapValues=zeros(0,1);
+    heapPairs=zeros(0,2);
+    return;
+end
+heapValues(1)=heapValues(end);
+heapPairs(1,1:2)=heapPairs(end,1:2);
+heapValues(end)=[];
+heapPairs(end,:)=[];
+idx=1;
+numElements=numel(heapValues);
+while true
+    left=idx*2;
+    right=left+1;
+    largest=idx;
+    if left<=numElements && heapValues(left)>heapValues(largest)
+        largest=left;
+    end
+    if right<=numElements && heapValues(right)>heapValues(largest)
+        largest=right;
+    end
+    if largest==idx
+        break;
+    end
+    [heapValues(idx),heapValues(largest)]=deal(heapValues(largest),heapValues(idx));
+    [heapPairs(idx,1:2),heapPairs(largest,1:2)]=deal(heapPairs(largest,1:2),heapPairs(idx,1:2));
+    idx=largest;
+end
 end
 
 %%
