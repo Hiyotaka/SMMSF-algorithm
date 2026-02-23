@@ -53,16 +53,25 @@ Delta_rho(x_i) = rho_alpha(x_i) - rho_1(x_i)
 ## Repository Layout
 ```text
 .
-├── SMMSF_clustering.m      # MATLAB entry
-├── kmst.m                  # build MST_1 and MST_3
-├── splitTree.m             # density-increment split
-├── TwoRoundMerge.m         # two-stage merge
+├── README.md
+├── README.txt
+├── requirements.txt
+├── matlab/
+│   ├── SMMSF_clustering.m  # MATLAB entry
+│   ├── kmst.m              # build MST_1 and MST_3
+│   ├── splitTree.m         # density-increment split
+│   └── TwoRoundMerge.m     # two-stage merge
 ├── python/
-│   ├── smmsf.py            # Python implementation
+│   ├── __init__.py
+│   ├── smmsf.py            # Python implementation (AI-generated)
 │   ├── run_smmsf.py        # CLI for CSV data
 │   └── README.md
-├── assets/figures/         # project figures
-└── requirements.txt        # Python dependencies
+└── assets/figures/
+    ├── pipeline.png
+    ├── synthetic_results.png
+    ├── noise_pic.png
+    ├── noise_f1.png
+    └── README.md
 ```
 
 ## Quick Start
