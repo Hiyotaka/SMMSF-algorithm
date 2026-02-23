@@ -1,5 +1,4 @@
-IDX = SMMSF_clustering(data,K)
+See README.md for the full project page, MATLAB usage, and Python implementation.
 
-data: An N × D matrix representing N samples with D features.
-
-K: The desired number of clusters.
+Quick MATLAB call:
+IDX = SMMSF_clustering(data, K)

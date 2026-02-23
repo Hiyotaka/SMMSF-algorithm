@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420">
+  <rect width="1200" height="420" fill="#f4f7fb"/>
+  <rect x="24" y="24" width="1152" height="372" rx="20" fill="#ffffff" stroke="#d8e0ea" stroke-width="2"/>
+  <text x="60" y="130" font-family="Georgia, serif" font-size="54" fill="#1a2b49">SMMSF Teaser Placeholder</text>
+  <text x="60" y="190" font-family="Arial, sans-serif" font-size="28" fill="#415674">Replace this file with your final qualitative figure.</text>
+  <text x="60" y="240" font-family="Arial, sans-serif" font-size="24" fill="#6c7a8b">Suggested content: dataset + MSF + split + merge + final labels.</text>
+</svg>
