@@ -1,9 +1,8 @@
-# Figure Placeholders
+# Figures
 
-Replace these SVG files with your final figures while keeping filenames unchanged:
+Current figures used by the project page:
 
-- `teaser.svg`
-- `pipeline.svg`
-- `synthetic_results.svg`
-- `real_results.svg`
-- `ablation_noise.svg`
+- `pipeline.png`
+- `synthetic_results.png`
+- `noise_pic.png`
+- `noise_f1.png`
